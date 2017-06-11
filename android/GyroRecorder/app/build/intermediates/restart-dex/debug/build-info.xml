@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<instant-run
+    abi="armeabi-v7a,armeabi"
+    api-level="21"
+    density="xxhdpi"
+    format="8"
+    plugin-version="2.2.2"
+    timestamp="119763488960510"
+    token="4408233953463610833"
+    verifier="FULL_BUILD_REQUESTED" >
+
+    <task
+        name="javac"
+        duration="4256" />
+    <task
+        name="instant-run-dex"
+        duration="0" />
+    <task
+        name="instant-run-transform"
+        duration="1020" />
+    <task
+        name="verifier"
+        duration="44" />
+
+    <artifact
+        location="/Users/itoyuichi/Downloads/OpenCVBlueprints-master/chapter_7/android/GyroRecorder/app/build/outputs/apk/app-debug.apk"
+        type="MAIN" />
+
+    <build
+        timestamp="119763488960510"
+        verifier="FULL_BUILD_REQUESTED" >
+        <artifact
+            location="/Users/itoyuichi/Downloads/OpenCVBlueprints-master/chapter_7/android/GyroRecorder/app/build/outputs/apk/app-debug.apk"
+            type="MAIN" />
+    </build>
+
+</instant-run>
