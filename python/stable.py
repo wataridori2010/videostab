@@ -195,8 +195,9 @@ def getAccumulatedRotation(w, h, theta_x, theta_y, theta_z, timestamps, prev, cu
         gyro_drifted = (gyro_drifted[0] - rot_start[0],
                         gyro_drifted[1] - rot_start[1],
                         gyro_drifted[2] - rot_start[2])
-    R = getRodrigues(gyro_drifted[1], -gyro_drifted[0], -gyro_drifted[2])
-
+#    R = getRodrigues(gyro_drifted[1], -gyro_drifted[0], -gyro_drifted[2])
+    R = getRodrigues(gyro_drifted[1], gyro_drifted[0], gyro_drifted[2])
+    
     x = np.array([[1.0, 0, 0, 0],
                      [0, 1.0, 0, 0],
                      [0, 0, 1.0, f],
@@ -237,7 +238,8 @@ def accumulateRotation(src, theta_x, theta_y, theta_z, timestamps, prev, current
             else:
                 y_timestamp = current
 
-            transform = getAccumulatedRotation(src.shape[1], src.shape[0], theta_x, theta_y, theta_z, timestamps, prev, current, f, gyro_delay, gyro_drift)
+#            transform = getAccumulatedRotation(src.shape[1], src.shape[0], theta_x, theta_y, theta_z, timestamps, prev, current, f, gyro_delay, gyro_drift)
+            transform = getAccumulatedRotation(src.shape[1], src.shape[0], theta_x, theta_y, theta_z, timestamps, prev, y_timestamp, f, gyro_delay, gyro_drift)
 #            print transform # debug
 #            a = np.array([np.array([[pixel_x, pixel_y]], dtype="float32")])# ito
             a = np.array([[pixel_x, pixel_y]], dtype="float32")# ito
@@ -485,7 +487,9 @@ class CalibrateGyroStabilize(object):
             num_0 = np.multiply(dx_0, dgt)
             delta_theta[component] = [0]
             delta_theta[component].extend(np.cumsum(num_0))
-
+            
+        render_trio(delta_theta[0], delta_theta[1], delta_theta[2], timestamps)
+            
         # UNKNOWNS
         focal_length = 1080.0
         gyro_delay = 0
@@ -557,11 +561,12 @@ def stabilize_video(mp4, csv):
     while success:
         print "Processing frame %d" % frameCount
         # Timestamp in nanoseconds
-        current_timestamp = vidcap.get(0) * 1000 * 1000
+        current_timestamp = vidcap.get(0) * 1000 * 1000 # video frames timeStamp
         print "    timestamp = %s ns" % current_timestamp
-        rot, prev, current = fetch_closest_trio(delta_theta[0], delta_theta[1], delta_theta[2], timestamps, current_timestamp)
+        rot, prev, current = fetch_closest_trio(delta_theta[0], delta_theta[1], delta_theta[2], timestamps, current_timestamp) # prev: previous timeStamp of Gyro, current: [prev+1] timeStamp of Gyro
 
-        rot = accumulateRotation(frame, delta_theta[0], delta_theta[1], delta_theta[2], timestamps, previous_timestamp, prev, focal_length, gyro_delay, gyro_drift)
+        rot = accumulateRotation(frame, delta_theta[0], delta_theta[1], delta_theta[2], timestamps, previous_timestamp, prev, focal_length, gyro_delay, gyro_drift, shutter_duration)
+        # previous_timestamp: revious timeStamp of frame, prev: current previous timeStamp of frame
 
 #        print "    rotation: %f, %f, %f" % (rot[0] * 180 / math.pi, 
 #                                            rot[1] * 180 / math.pi,
