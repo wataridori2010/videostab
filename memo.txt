@@ -1,0 +1,73 @@
+全体的に書き換えること
+_KLT_FloatImage　FLOAT32 にする
+_KLTCreateFloatImage　を普通にcallocにする
+_KLTComputeSmoothedImage　の演算でシグマが必要かどうか、ボックスフィルタにできないか
+_KLTComputeGradients　これも単純なソーベルかシャルにできないか　GoldeCのエッジ検出を使う?
+
+
+高速化すべき関数
+selectGoodFeatures.c
+	static void _fillFeaturemap
+		無駄なif文削除
+		featuremapがbainary mapでよいのでは、[0,1]
+
+	static void _enforceMinimumDistance
+		featuremapがbainary mapでよいのでは、[0,1]
+		affに関する記述の削除
+
+	static float _minEigenvalue(float gxx, float gxy, float gyy)
+		sqrを消すため2乗の計算にする
+
+
+trackFeatures.c
+	affine系の部分はいらない、consistency checkとか
+
+ 	* CONSISTENCY CHECK OF FEATURES BY AFFINE MAPPING (START)	
+	* CONSISTENCY CHECK OF FEATURES BY AFFINE MAPPING (END)
+
+
+いらないと思われるファイル
+storeFeatures.c　あってもいいがなくてもいい
+writeFeatures.c　画像出力しなければいらない
+pnmio.h　いらない
+pnmio.c　いらない
+error.c　エラー処理しなければいい
+error.h　エラー処理しなkればいい
+
+
+
+//-------
+Quick Implementation for the team project development
+
+	Initially Assined to HMIC team project.
+	There were many issues which we needed to solve in a limited period.
+	Key things is to test and implement some algorithms quickly and commit the code to the project repository ASAP when we confirm the effectiveness of the algorithms.
+
+
+Dedication and Team Work
+	
+	"A single arrow is easily broken, but not ten in a bundle."   A Japanese Proverb
+	Many things to do to solve the issue in a time constraint environment. 
+	However human resources is limited.
+	All the team member have to do what they can dedicate timely. 
+	i.e. Not just code implementation or algorithm development, I often went outside for the sampling of HDR/MHNR/MFSR images.
+
+Prioritizing Tasks
+	
+	I would like to contribte to the project and Huawei as much as possible.
+	Something unexpected happen suddenly. (project policy , unexpected meeting, etc)
+	It is important to prioritize key issues and what needs to be taken care of first under limited working time.
+
+//--------
+Opinion to the department
+	
+
+	Generally speaking, Development Speed is exponentially increasing as represented by deep learning development.
+
+	The company that is divided into research section and develop section will be dead sooner or later.
+
+
+
+
+
+
