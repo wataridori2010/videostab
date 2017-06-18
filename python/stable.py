@@ -195,9 +195,14 @@ def getAccumulatedRotation(w, h, theta_x, theta_y, theta_z, timestamps, prev, cu
         gyro_drifted = (gyro_drifted[0] - rot_start[0],
                         gyro_drifted[1] - rot_start[1],
                         gyro_drifted[2] - rot_start[2])
+        
+
+    fov=1.5358444444;
+        
 #    R = getRodrigues(gyro_drifted[1], -gyro_drifted[0], -gyro_drifted[2])
-    R = getRodrigues(gyro_drifted[1], gyro_drifted[0], gyro_drifted[2])
-    
+
+
+    R = getRodrigues(gyro_drifted[1], gyro_drifted[0], gyro_drifted[2])   
     x = np.array([[1.0, 0, 0, 0],
                      [0, 1.0, 0, 0],
                      [0, 0, 1.0, f],
@@ -208,6 +213,13 @@ def getAccumulatedRotation(w, h, theta_x, theta_y, theta_z, timestamps, prev, cu
                   [0, 0, 1, 0]])
     transform = R*(T*transform)
 
+#    transform = np.array([[np.cos(gyro_drifted[2]), -np.sin(gyro_drifted[2]),  gyro_drifted[0]*w/fov],
+#                      [np.sin(gyro_drifted[2]), np.cos(gyro_drifted[2]),  gyro_drifted[1]*h/fov ],
+#                      [0, 0, 1]])
+#    transform = np.array([[1, 0,  gyro_drifted[0]*w/fov],
+#                      [0, 1,  gyro_drifted[1]*h/fov ],
+#                      [0, 0, 1]])
+    
     A2 = np.asmatrix(x)
 
     transform = A2 * transform
@@ -261,7 +273,6 @@ def accumulateRotation(src, theta_x, theta_y, theta_z, timestamps, prev, current
     return o
 
     
-
 def rotateImage(src, rx, ry, rz, dx, dy, dz, f, convertToRadians=False):
     if convertToRadians:
         rx = (rx) * math.pi / 180
@@ -274,6 +285,35 @@ def rotateImage(src, rx, ry, rz, dx, dy, dz, f, convertToRadians=False):
 
     w = src.shape[1]
     h = src.shape[0]
+
+    fov=1.5358444444;
+#    transform = np.array([[np.cos(rz), -np.sin(rz),  rx*w/fov , 0],
+#                      [np.sin(rz), np.cos(rz),  ry*h/fov , 0],
+#                      [0, 0, 0, 0],
+#                      [0, 0, 0, 1]])
+
+    transform = np.array([[1, 0,  rx*w/fov , 0],
+                      [0, 1,  ry*h/fov , 0],
+                      [0, 0, 0, 0],
+                      [0, 0, 0, 1]])
+    o = cv2.warpPerspective(src, transform, (w, h))
+    return o
+
+    
+def rotateImage_(src, rx, ry, rz, dx, dy, dz, f, convertToRadians=False):
+    if convertToRadians:
+        rx = (rx) * math.pi / 180
+        ry = (ry) * math.pi / 180
+        rz = (rz) * math.pi / 180
+
+    rx = float(rx)
+    ry = float(ry)
+    rz = float(rz)
+
+    w = src.shape[1]
+    h = src.shape[0]
+
+    fov=1.5358444444;
 
     x = np.array([[1, 0, -w/2],
                       [0, 1, -h/2],
@@ -301,8 +341,10 @@ def rotateImage(src, rx, ry, rz, dx, dy, dz, f, convertToRadians=False):
     A2 = np.asmatrix(x)
 
     transform = A2*(T*(R*A1))
+
     o = cv2.warpPerspective(src, transform, (w, h))
     return o
+
 
 
 def render_trio(signal_x, signal_y, signal_z, timestamps):
@@ -559,6 +601,7 @@ def stabilize_video(mp4, csv):
     success, frame = vidcap.read()
     previous_timestamp = 0
     while success:
+#    while 0:
         print "Processing frame %d" % frameCount
         # Timestamp in nanoseconds
         current_timestamp = vidcap.get(0) * 1000 * 1000 # video frames timeStamp
@@ -572,7 +615,7 @@ def stabilize_video(mp4, csv):
 #                                            rot[1] * 180 / math.pi,
 #                                            rot[2] * 180 / math.pi)
         
-        cv2.imwrite('dst/frame%04d.png' % frameCount, frame)
+#        cv2.imwrite('dst/frame%04d.png' % frameCount, frame)
         cv2.imwrite('dst/rotated%04d.png' % frameCount, rot)
         frameCount += 1
         previous_timestamp = prev
