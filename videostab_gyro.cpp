@@ -39,7 +39,7 @@ int main(int argc, char **argv)
         gyrX.push_back(gx);
         gyrY.push_back(gy);
         gyrZ.push_back(gz);
-        printf("%lf, %lf, %lf, %lf\n",gx,gy,gz,time);
+//        printf("%lf, %lf, %lf, %lf\n",gx,gy,gz,time);
     }
     
     double *timeStamp2=(double *)calloc(timeStamp.size(),sizeof(double));
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
     // copy and initialize
     for(int i=0; i< timeStamp.size(); i++) timeStamp2[i]=timeStamp[i]-timeStamp[0];
 
-/*
+
     // remove low freqency
     double *gyrX_low=(double *)calloc(timeStamp.size(),sizeof(double));
     double *gyrY_low=(double *)calloc(timeStamp.size(),sizeof(double));
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     double gyrX_rec=gyrX[0];
     double gyrY_rec=gyrY[0];
     double gyrZ_rec=gyrZ[0];
-    double rec=0.95;
+    double rec=0.99;
     
     for(int i=0; i< timeStamp.size()-1; i++){
         gyrX_rec = rec * gyrX_rec + (1-rec) * gyrX[i];
@@ -77,16 +77,23 @@ int main(int argc, char **argv)
     free(gyrX_low);
     free(gyrY_low);
     free(gyrZ_low);
-*/
+
     
     // accumulating
     double denom=1000000000;
     for(int i=1; i< timeStamp.size()-1; i++){
-        rotX[i]=rotX[i-1]+((timeStamp2[i]-timeStamp2[i-1])*gyrX[i-1])/denom;
-        rotY[i]=rotY[i-1]+((timeStamp2[i]-timeStamp2[i-1])*gyrY[i-1])/denom;
-        rotZ[i]=rotZ[i-1]+((timeStamp2[i]-timeStamp2[i-1])*gyrZ[i-1])/denom;
+//        rotX[i]=rotX[i-1]+((timeStamp2[i]-timeStamp2[i-1])*gyrX[i-1])/denom;
+//        rotY[i]=rotY[i-1]+((timeStamp2[i]-timeStamp2[i-1])*gyrY[i-1])/denom;
+//        rotZ[i]=rotZ[i-1]+((timeStamp2[i]-timeStamp2[i-1])*gyrZ[i-1])/denom;
+        rotX[i]=rotX[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrX[i-1]+gyrX[i])*0.5)/denom;
+        rotY[i]=rotY[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrY[i-1]+gyrY[i])*0.5)/denom;
+        rotZ[i]=rotZ[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrZ[i-1]+gyrZ[i])*0.5)/denom;
+        printf("timeStamp2: %lf, %lf\n",timeStamp2[i]-timeStamp2[i-1],timeStamp[i]-timeStamp[i-1]);
     }
-    
+    for(int i=1; i< timeStamp.size()-1; i++){
+        timeStamp[i]/=denom;
+        timeStamp2[i]/=denom;
+    }
     
     Mat T(2,3,CV_64F);
     Mat E(2,3,CV_64F);
@@ -106,7 +113,7 @@ int main(int argc, char **argv)
     double fps = cap.get(CV_CAP_PROP_FPS);
     cout << "Frames per second using video.get(CV_CAP_PROP_FPS) : " << fps << endl;
     
-    int k=0, max_frames = 100;
+    int k=0, k_gyro=0, max_frames = 100;
     
     //while(k < max_frames-1) { // don't process the very last frame, no valid transform
     while(1) {
@@ -115,11 +122,20 @@ int main(int argc, char **argv)
         
         printf("%d\n",k);
         
-        if(cur.data == NULL)             break;
+        if(cur.data == NULL) break;
+        float time=float(k)/24.9423;
+        while(time>timeStamp2[k_gyro])k_gyro++;
         
-        float rx=rotX[3*(k+20)]; // should adjust time stamp!!! and Delay
-        float ry=rotY[3*(k+20)];
-        float rz=rotZ[3*(k+20)];
+        printf("k_gyro: %d\n",k_gyro);
+        
+//        if(k_gyro>0)k_gyro=k_gyro-1;
+        
+//        float rx=rotX[3*(k+5)]; // should adjust time stamp!!! and Delay
+//        float ry=rotY[3*(k+5)];
+//        float rz=rotZ[3*(k+5)];
+        float rx=rotX[k_gyro]; // should adjust time stamp!!! and Delay
+        float ry=rotY[k_gyro];
+        float rz=rotZ[k_gyro];
         
         float w = 960;//1920;
         float h = 544;//1080;
@@ -141,10 +157,10 @@ int main(int argc, char **argv)
 //        else if(da>0.5) da=0.5;
 
         
-        T.at<double>(0,0) = cos(rz);
-        T.at<double>(0,1) = -sin(rz);
-        T.at<double>(1,0) = sin(rz);
-        T.at<double>(1,1) = cos(rz);
+        T.at<double>(0,0) = cos(da);
+        T.at<double>(0,1) = -sin(da);
+        T.at<double>(1,0) = sin(da);
+        T.at<double>(1,1) = cos(da);
         T.at<double>(0,2) = dx;
         T.at<double>(1,2) = dy;
 
