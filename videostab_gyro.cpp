@@ -19,10 +19,8 @@ using namespace cv;
 // This video stablisation smooths the global trajectory using a sliding average window
 
 
-
 int main(int argc, char **argv)
 {
-    
     vector<double> timeStamp;
     vector<double> gyrX;
     vector<double> gyrY;
@@ -59,7 +57,7 @@ int main(int argc, char **argv)
     double gyrY_rec=gyrY[0];
     double gyrZ_rec=gyrZ[0];
     double rec=0.99;
-    
+
     for(int i=0; i< timeStamp.size()-1; i++){
         gyrX_rec = rec * gyrX_rec + (1-rec) * gyrX[i];
         gyrY_rec = rec * gyrY_rec + (1-rec) * gyrY[i];
@@ -73,6 +71,34 @@ int main(int argc, char **argv)
         gyrY[i] = gyrY[i] - gyrY_low[i];
         gyrZ[i] = gyrZ[i] - gyrZ_low[i];
     }
+
+/*
+    int sw=60;
+    for(int i=0; i< timeStamp.size()-1; i++){
+        gyrX_rec = 0;
+        gyrY_rec = 0;
+        gyrZ_rec = 0;
+        float counts=0;
+        for(int j=-sw; j<= sw; j++){
+            if(i+j>=0 && i+j<timeStamp.size()){
+            gyrX_rec = gyrX_rec + gyrX[i+j];
+            gyrY_rec = gyrY_rec + gyrY[i+j];
+            gyrZ_rec = gyrZ_rec + gyrZ[i+j];
+            counts+=1.0;
+            }
+        }
+        gyrX_low[i] = gyrX_rec/counts;
+        gyrY_low[i] = gyrY_rec/counts;
+        gyrZ_low[i] = gyrZ_rec/counts;
+    }
+    for(int i=0; i< timeStamp.size()-1; i++){
+    
+        // subtract original gyro data
+        gyrX[i] = gyrX[i] - gyrX_low[i];
+        gyrY[i] = gyrY[i] - gyrY_low[i];
+        gyrZ[i] = gyrZ[i] - gyrZ_low[i];
+    }
+*/
     
     free(gyrX_low);
     free(gyrY_low);
@@ -85,9 +111,15 @@ int main(int argc, char **argv)
 //        rotX[i]=rotX[i-1]+((timeStamp2[i]-timeStamp2[i-1])*gyrX[i-1])/denom;
 //        rotY[i]=rotY[i-1]+((timeStamp2[i]-timeStamp2[i-1])*gyrY[i-1])/denom;
 //        rotZ[i]=rotZ[i-1]+((timeStamp2[i]-timeStamp2[i-1])*gyrZ[i-1])/denom;
-        rotX[i]=rotX[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrX[i-1]+gyrX[i])*0.5)/denom;
-        rotY[i]=rotY[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrY[i-1]+gyrY[i])*0.5)/denom;
-        rotZ[i]=rotZ[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrZ[i-1]+gyrZ[i])*0.5)/denom;
+//        rotX[i]=rotX[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrX[i-1]+gyrX[i])*0.5)/denom;
+//        rotY[i]=rotY[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrY[i-1]+gyrY[i])*0.5)/denom;
+//        rotZ[i]=rotZ[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrZ[i-1]+gyrZ[i])*0.5)/denom;
+//        rotX[i]=rotX[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrX[i-1]+gyrX[i]+gyrX[i+1])*0.333)/denom;
+//        rotY[i]=rotY[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrY[i-1]+gyrY[i]+gyrY[i+1])*0.333)/denom;
+//        rotZ[i]=rotZ[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrZ[i-1]+gyrZ[i]+gyrZ[i+1])*0.333)/denom;
+        rotX[i]=rotX[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrX[i-1]+2*gyrX[i]+gyrX[i+1])*0.25)/denom;
+        rotY[i]=rotY[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrY[i-1]+2*gyrY[i]+gyrY[i+1])*0.25)/denom;
+        rotZ[i]=rotZ[i-1]+((timeStamp2[i]-timeStamp2[i-1])*(gyrZ[i-1]+2*gyrZ[i]+gyrZ[i+1])*0.25)/denom;
         printf("timeStamp2: %lf, %lf\n",timeStamp2[i]-timeStamp2[i-1],timeStamp[i]-timeStamp[i-1]);
     }
     for(int i=1; i< timeStamp.size()-1; i++){
@@ -113,20 +145,25 @@ int main(int argc, char **argv)
     double fps = cap.get(CV_CAP_PROP_FPS);
     cout << "Frames per second using video.get(CV_CAP_PROP_FPS) : " << fps << endl;
     
-    int k=0, k_gyro=0, max_frames = 100;
+    int k=0, k_gyro=0, max_frames = 360;
     
-    //while(k < max_frames-1) { // don't process the very last frame, no valid transform
-    while(1) {
+    while(k < max_frames-1) { // don't process the very last frame, no valid transform
+//    while(1) {
         
         cap >> cur;
         
         printf("%d\n",k);
         
         if(cur.data == NULL) break;
-        float time=float(k)/24.9423;
-        while(time>timeStamp2[k_gyro])k_gyro++;
         
-        printf("k_gyro: %d\n",k_gyro);
+        double st=cap.get(CV_CAP_PROP_POS_MSEC)/1000.0;
+        
+        //float time=float(k)/24.9423;
+        //while(time>timeStamp2[k_gyro])k_gyro++;
+        while(st>timeStamp2[k_gyro])k_gyro++;
+        
+        //printf("st: %lf, time:%f\n",st,time);
+        //printf("k_gyro: %d\n",k_gyro);
         
 //        if(k_gyro>0)k_gyro=k_gyro-1;
         
@@ -136,6 +173,10 @@ int main(int argc, char **argv)
         float rx=rotX[k_gyro]; // should adjust time stamp!!! and Delay
         float ry=rotY[k_gyro];
         float rz=rotZ[k_gyro];
+//          float rx=((time-timeStamp2[k_gyro-1])*rotX[k_gyro]+(timeStamp2[k_gyro]-time)*rotX[k_gyro-1])/(timeStamp2[k_gyro]-timeStamp2[k_gyro-1]);
+//          float ry=((time-timeStamp2[k_gyro-1])*rotY[k_gyro]+(timeStamp2[k_gyro]-time)*rotX[k_gyro-1])/(timeStamp2[k_gyro]-timeStamp2[k_gyro-1]);
+//          float rz=((time-timeStamp2[k_gyro-1])*rotZ[k_gyro]+(timeStamp2[k_gyro]-time)*rotX[k_gyro-1])/(timeStamp2[k_gyro]-timeStamp2[k_gyro-1]);
+
         
         float w = 960;//1920;
         float h = 544;//1080;
@@ -172,7 +213,7 @@ int main(int argc, char **argv)
         if(k==0){
 //            writer.open("/Users/itoyuichi/github/playground/OpenCV/stab-opencv/stabilized_result.avi", CV_FOURCC_DEFAULT, 30, Size(cur.cols, cur.rows));
             canvas = Mat::zeros(cur.rows, cur.cols*2+10, cur.type());
-            writer.open("/Users/itoyuichi/github/playground/OpenCV/stab-opencv/stabilized_result2.avi", CV_FOURCC_DEFAULT, 30, Size(canvas.cols, canvas.rows));
+            writer.open("/Users/itoyuichi/github/playground/OpenCV/stab-opencv/stabilized_result3.avi", CV_FOURCC_DEFAULT, 30, Size(canvas.cols, canvas.rows));
             
         }
         cur.copyTo(canvas(Range::all(), Range(0, cur2.cols)));
