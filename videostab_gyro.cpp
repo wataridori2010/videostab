@@ -19,6 +19,17 @@ using namespace cv;
 // This video stablisation smooths the global trajectory using a sliding average window
 
 
+//Mat  getRodorigue(rx, ry, rz){
+//
+//    smallR = Rodrigues(np.array([float(rx), float(ry), float(rz)]))[0]
+//    R = np.array([[smallR[0][0], smallR[0][1], smallR[0][2], 0],
+//                  [smallR[1][0], smallR[1][1], smallR[1][2], 0],
+//                  [smallR[2][0], smallR[2][1], smallR[2][2], 0],
+//                  [0,         0,         0,         1]])
+//    return R
+//
+//}
+
 int main(int argc, char **argv)
 {
     vector<double> timeStamp;
@@ -180,8 +191,6 @@ int main(int argc, char **argv)
         
         float w = 960;//1920;
         float h = 544;//1080;
-//        float w = 2*960;//1920;
-//        float h = 2*544;//1080;
         
         float fov=1.5358444444;// field of view
         
@@ -196,7 +205,6 @@ int main(int argc, char **argv)
 //        else if(dy>100)  dy=100;
 //        if(da<-0.5)     da=-0.5;
 //        else if(da>0.5) da=0.5;
-
         
         T.at<double>(0,0) = cos(da);
         T.at<double>(0,1) = -sin(da);
@@ -206,14 +214,53 @@ int main(int argc, char **argv)
         T.at<double>(1,2) = dy;
 
         
+        //-------------------------------------------------------------------------------------------
+        // Rodorigue
+        
+        Mat A1(4,3,CV_64F);
+        A1.at<double>(0,0) = 1; A1.at<double>(0,1) = 0; A1.at<double>(0,2) = -w/2;
+        A1.at<double>(1,0) = 0; A1.at<double>(1,1) = 1; A1.at<double>(1,2) = -h/2;
+        A1.at<double>(2,0) = 0; A1.at<double>(2,1) = 0; A1.at<double>(2,2) = 0;
+        A1.at<double>(3,0) = 0; A1.at<double>(3,1) = 0; A1.at<double>(3,2) = 1;
 
-        warpAffine(cur, cur2, T, cur.size());
+        double f=1000;
+        //Mat T_(4,4,CV_64F);
+        Mat T_(3,4,CV_64F);
+        T_.at<double>(0,0) = 1; T_.at<double>(0,1) = 0; T_.at<double>(0,2) = 0;T_.at<double>(0,3) = 0;
+        T_.at<double>(1,0) = 0; T_.at<double>(1,1) = 1; T_.at<double>(1,2) = 0;T_.at<double>(1,3) = 0;
+        T_.at<double>(2,0) = 0; T_.at<double>(2,1) = 0; T_.at<double>(2,2) = 1;T_.at<double>(2,3) = f;
+        //T_.at<double>(3,0) = 0; T_.at<double>(3,1) = 0; T_.at<double>(3,2) = 0;T_.at<double>(0,2) = 0;
+
+        Mat rotation_vector(3,1,CV_64F);
+        Mat R(3,3,CV_64F);
+        rotation_vector.at<double>(0,0)=-ry;
+        rotation_vector.at<double>(1,0)=-rx;
+        rotation_vector.at<double>(2,0)=-rz;
+        Rodrigues(rotation_vector,R);
+        
+        
+        //Mat A2(3,4,CV_64F);
+        Mat A2(3,3,CV_64F);
+        A2.at<double>(0,0) = f; A2.at<double>(0,1) = 0; A2.at<double>(0,2) = w/2;//A2.at<double>(0,3) = 0;
+        A2.at<double>(1,0) = 0; A2.at<double>(1,1) = f; A2.at<double>(1,2) = h/2;//A2.at<double>(1,3) = 0;
+        A2.at<double>(2,0) = 0; A2.at<double>(2,1) = 0; A2.at<double>(2,2) = 1;  //A2.at<double>(2,3) = 0;
+
+        Mat T2(3,3,CV_64F);
+        T2 = A2*(R*(T_*A1));
+        
+        warpPerspective(cur, cur2, T2, cur.size());
+
+        //-------------------------------------------------------------------------------------------
+        
+        
+        //warpAffine(cur, cur2, T, cur.size());
+        
         
         //video writer
         if(k==0){
 //            writer.open("/Users/itoyuichi/github/playground/OpenCV/stab-opencv/stabilized_result.avi", CV_FOURCC_DEFAULT, 30, Size(cur.cols, cur.rows));
             canvas = Mat::zeros(cur.rows, cur.cols*2+10, cur.type());
-            writer.open("/Users/itoyuichi/github/playground/OpenCV/stab-opencv/stabilized_result3.avi", CV_FOURCC_DEFAULT, 30, Size(canvas.cols, canvas.rows));
+            writer.open("/Users/itoyuichi/github/playground/OpenCV/stab-opencv/stabilized_result4.avi", CV_FOURCC_DEFAULT, 30, Size(canvas.cols, canvas.rows));
             
         }
         cur.copyTo(canvas(Range::all(), Range(0, cur2.cols)));
