@@ -156,7 +156,10 @@ int main(int argc, char **argv)
     FILE *cp=fopen(strcat(strcat(path_,fn),cpath),"w");
 #endif
     
+
     
+    vector<vector<double>> mat_seq;
+    vector<vector<double>> mat_seq_s;
     
     vector<double> mat1,mat2,mat3,mat4,mat5,mat6,mat7,mat8,mat9;
     vector<double> mat1s,mat2s,mat3s,mat4s,mat5s,mat6s,mat7s,mat8s,mat9s;
@@ -321,6 +324,34 @@ int main(int argc, char **argv)
         mat8s.push_back(T2d.at<double>(2,1));
         mat9s.push_back(T2d.at<double>(2,2));
         
+
+        vector<double> mat_;
+        vector<double> mat_s;
+ 
+        mat_.push_back(T2d.at<double>(0,0));
+        mat_.push_back(T2d.at<double>(0,1));
+        mat_.push_back(T2d.at<double>(0,2));
+        mat_.push_back(T2d.at<double>(1,0));
+        mat_.push_back(T2d.at<double>(1,1));
+        mat_.push_back(T2d.at<double>(1,2));
+        mat_.push_back(T2d.at<double>(2,0));
+        mat_.push_back(T2d.at<double>(2,1));
+        mat_.push_back(T2d.at<double>(2,2));
+ 
+        mat_s.push_back(T2d.at<double>(0,0));
+        mat_s.push_back(T2d.at<double>(0,1));
+        mat_s.push_back(T2d.at<double>(0,2));
+        mat_s.push_back(T2d.at<double>(1,0));
+        mat_s.push_back(T2d.at<double>(1,1));
+        mat_s.push_back(T2d.at<double>(1,2));
+        mat_s.push_back(T2d.at<double>(2,0));
+        mat_s.push_back(T2d.at<double>(2,1));
+        mat_s.push_back(T2d.at<double>(2,2));
+ 
+        mat_seq.push_back(mat_);
+        mat_seq_s.push_back(mat_s);
+
+        
         mat_time.push_back(time);
 /*
         warpPerspective(cur, cur2, T2d, cur.size());
@@ -364,10 +395,66 @@ int main(int argc, char **argv)
     double th3=50;
     double th6=50;
     
+    float width = 960;
+    float height = 544;
     
-    //3
+    float xp[4]={0, width, 0, width};
+    float yp[4]={0, 0, height, height};
+
+    float xp_init[4]={0, width, 0, width};
+    float yp_init[4]={0, 0, height, height};
     
+    // all
     int init=0;
+    for(k = 0; k< max_frames-1; k++) {
+
+        bool trajectory_change = false;
+        
+        for(int j=0; j<4; j++){
+            //double denom = mat_seq[k][6]*xp[j] + mat_seq[k][7]*yp[j] + mat_seq[k][8];
+            double denom = 1;
+            printf("denom, %lf\n",denom);
+            float xp_ = ( mat_seq[k][0]*xp[j] + mat_seq[k][1]*yp[j] + mat_seq[k][2] ) / denom;
+            float yp_ = ( mat_seq[k][3]*xp[j] + mat_seq[k][4]*yp[j] + mat_seq[k][5] ) / denom;
+            
+//            if(xp_< xp[j]-th3 || xp[j]+th3 < xp_ || yp_ < yp[j]-th3 || yp[j]+th3 < yp_){
+            if(xp_< xp_init[j]-th3 || xp_init[j]+th3 < xp_ || yp_ < yp_init[j]-th3 || yp_init[j]+th3 < yp_){
+                printf("%f, %f, %f, %f\n",xp[j], yp[j], xp_init[j], yp_init[j]);
+                trajectory_change = 1;
+            }
+        }
+        
+        if(trajectory_change){
+//            printf("%d, %d\n",k, trajectory_change);
+            for(int i = init; i < k; i++) {
+                for (int j=0; j<9; j++){
+                    mat_seq_s[i][j]=((mat_seq[k][j]-mat_seq[init][j])*(i-init))/(k-init) + mat_seq[init][j];
+                }
+            }
+            init=k;
+            
+            for(int j=0; j<4; j++){
+                //double denom = mat_seq[k][6]*xp[j] + mat_seq[k][7]*yp[j] + mat_seq[k][8];
+                double denom = 1;
+                xp_init[j] = ( mat_seq_s[k][0]*xp[j] + mat_seq_s[k][1]*yp[j] + mat_seq_s[k][2] ) / denom;
+                yp_init[j] = ( mat_seq_s[k][3]*xp[j] + mat_seq_s[k][4]*yp[j] + mat_seq_s[k][5] ) / denom;
+            }
+        }
+    }
+        
+    k=max_frames-2;
+    for(int i = init; i < k; i++) {
+        for (int j=0; j<9; j++){
+            mat_seq_s[i][j]=((mat_seq[k][j]-mat_seq[init][j])*(i-init))/(k-init) + mat_seq[init][j];
+        }
+        
+    }
+    
+    
+    
+/*
+    //3
+    init=0;
     for(k = 0; k< max_frames-1; k++) {
         
         if(mat3[k]<mat3[init]-th3 || mat3[init]+th3 < mat3[k]){
@@ -471,7 +558,7 @@ int main(int argc, char **argv)
     for(int i = init; i < k; i++) {
         mat5s[i]=((mat5[k]-mat5[init])*(i-init))/(k-init) + mat5[init];
     }
-
+*/
     
     //------------------------------------------------------------------
     strcpy(path_,path);
@@ -497,6 +584,19 @@ int main(int argc, char **argv)
         if(cur.data == NULL) break;
         
         Mat T2d(3,3,CV_64F);
+        
+        T2d.at<double>(0,0) = mat_seq[k][0]-mat_seq_s[k][0] +1.0;
+        T2d.at<double>(0,1) = mat_seq[k][1]-mat_seq_s[k][1];
+        T2d.at<double>(0,2) = mat_seq[k][2]-mat_seq_s[k][2];
+        T2d.at<double>(1,0) = mat_seq[k][3]-mat_seq_s[k][3];
+        T2d.at<double>(1,1) = mat_seq[k][4]-mat_seq_s[k][4]+1.0;
+        T2d.at<double>(1,2) = mat_seq[k][5]-mat_seq_s[k][5];
+        T2d.at<double>(2,0) = 0;
+        T2d.at<double>(2,1) = 0;
+        T2d.at<double>(2,2) = 1;
+
+        
+/*
 //        T2d.at<double>(0,0) = mat1[k];
 //        T2d.at<double>(0,1) = mat2[k];
 //        T2d.at<double>(0,2) = mat3[k];
@@ -522,6 +622,9 @@ int main(int argc, char **argv)
         T2d.at<double>(2,0) = 0;
         T2d.at<double>(2,1) = 0;
         T2d.at<double>(2,2) = 1;
+*/
+        
+        
         
         
 #ifdef WRITE_CAMERA_PATH
@@ -538,8 +641,14 @@ int main(int argc, char **argv)
 #endif
 
         
+
         
         warpPerspective(cur, cur2, T2d, cur.size());
+        
+        rectangle(cur2, CvPoint(0,0), CvPoint(th3,th3), CvScalar(5,0,250),2);
+        rectangle(cur2, CvPoint(0,cur2.rows-th3), CvPoint(th3,cur2.rows), CvScalar(5,0,250),2);
+        rectangle(cur2, CvPoint(cur2.cols-th3,0), CvPoint(cur2.cols,th3), CvScalar(5,0,250),2);
+        rectangle(cur2, CvPoint(cur2.cols-th3,cur2.rows-th3), CvPoint(cur2.cols,cur2.rows), CvScalar(5,0,250),2);
         
         //-------------------------------------------------------------------------------------------
         
@@ -553,7 +662,7 @@ int main(int argc, char **argv)
         cur.copyTo(canvas(Range::all(), Range(0, cur2.cols)));
         cur2.copyTo(canvas(Range::all(), Range(cur2.cols+10, cur2.cols*2+10)));
         
-        //        imshow("after", cur2);
+        //imshow("after", cur2);
         imshow("after", canvas);
         
         
